@@ -6,9 +6,9 @@ import zipfile
 import os
 
 
-st.set_page_config(page_title='Cleans Invoicing Assistant', page_icon='🧾', layout="centered", initial_sidebar_state="auto", menu_items=None)
+st.set_page_config(page_title='Cleans Invoicing Assistant', page_icon='🧍🏻', layout="centered", initial_sidebar_state="auto", menu_items=None)
 
-st.caption('ROYAL DESTINATIONS')
+st.image(st.secrets['logo'], width=100)
 st.title('Cleans Invoicing Assistant')
 st.info('Use the Breezeway export file to faciliate vendor tasks and highlight any issues.')
 
