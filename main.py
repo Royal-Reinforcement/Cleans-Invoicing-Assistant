@@ -180,23 +180,26 @@ if file is not None:
             accounting_df = pd.merge(df, escapia_df, how='left', left_on='Task tags', right_on='Reservation_Number')
 
             accounting_file = pd.DataFrame()
-            accounting_file['Post?']                 = ''
+            accounting_file['Vendor']                = accounting_df['Assignees']
+            accounting_file['Unit Price']            = accounting_df['Amount due'].astype(float)
+            accounting_file['Class']                 = accounting_df['Unit_Code']
+            accounting_file['Post?']                 = 'No'
             accounting_file['Invoice/Bill Date']     = ''
             accounting_file['Due Date']              = ''
             accounting_file['Invoice / Bill Number'] = ''
-            accounting_file['Transaction Type']      = ''
+            accounting_file['Transaction Type']      = 'Bill'
             accounting_file['Customer']              = ''
-            accounting_file['Vendor']                = accounting_df['Assignees']
             accounting_file['Currency Code']         = ''
             accounting_file['Product/Services']      = ''
             accounting_file['Description']           = ''
             accounting_file['Qty']                   = 1
             accounting_file['Discount %']            = ''
-            accounting_file['Unit Price']            = accounting_df['Amount due'].astype(float)
             accounting_file['Category']              = ''
             accounting_file['Location']              = ''
-            accounting_file['Class']                 = accounting_df['Unit_Code']
             accounting_file['Tax']                   = ''
+
+            accounting_file = accounting_file[['Post?', 'Invoice/Bill Date', 'Due Date', 'Invoice / Bill Number', 'Transaction Type', 'Customer', 'Vendor', 'Currency Code', 'Product/Services', 'Description', 'Qty', 'Discount %', 'Unit Price', 'Category', 'Location', 'Class', 'Tax']]
+            
             accounting_file
 
 
@@ -206,4 +209,4 @@ if file is not None:
             m.metric(label='Cleaners', value=len(df['Assignees'].unique()))
             r.metric(label='Amount', value='$' + str(round(df['Amount due'].sum(), 2)), help='Assumes **Rate paid** if present, **Total cost** otherwise.')
 
-            st.download_button('Download Accounting File', data=accounting_df.to_csv(index=False).encode('utf-8'), file_name='Accounting_'+str(start_date)+'_'+str(end_date)+'.csv', type='primary', use_container_width=True)
+            st.download_button('Download Accounting File', data=accounting_file.to_csv(index=False).encode('utf-8'), file_name='Accounting_'+str(start_date)+'_'+str(end_date)+'.csv', type='primary', use_container_width=True)
