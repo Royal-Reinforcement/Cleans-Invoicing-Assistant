@@ -40,26 +40,27 @@ if file is not None:
     date_range        = pd.date_range(start_date, end_date)
 
     df                = df[df['Completed date'].isin(date_range)]
-
     cleaners          = df['Assignees'].sort_values().unique()
+
+    df['Completed date'] = df['Completed date'].dt.strftime('%m/%d/%Y')
 
     st.divider()
 
 
-    tags                 = ['RES', 'HLD']
-    tag_pattern          = '|'.join(tags)
-    tag_df               = df[~df['Task tags'].str.contains(tag_pattern, case=False, na=False)]
-    tag_df['Issue']      = 'Missing_Reservation_Tag'
+    tags                  = ['RES', 'HLD']
+    tag_pattern           = '|'.join(tags)
+    tag_df                = df[~df['Task tags'].str.contains(tag_pattern, case=False, na=False)]
+    tag_df['Issue']       = 'Missing_Reservation_Tag'
 
-    statuses             = ['Finished', 'Approved']
-    status_df            = df[~df['Status'].isin(statuses)]
-    status_df['Issue']   = 'Invalid_Status'
+    statuses              = ['Finished', 'Approved']
+    status_df             = df[~df['Status'].isin(statuses)]
+    status_df['Issue']    = 'Invalid_Status'
 
-    assignee_df          = df[df['Assignees'].isna()]
-    assignee_df['Issue'] = 'Missing_Assignee'
+    assignee_df           = df[df['Assignees'].isna()]
+    assignee_df['Issue']  = 'Missing_Assignee'
 
-    cost_df              = df[(df['Total cost'].isna() & df['Rate paid'].isna())]
-    cost_df['Issue']     = 'Missing_Cost'
+    cost_df               = df[(df['Total cost'].isna() & df['Rate paid'].isna())]
+    cost_df['Issue']      = 'Missing_Cost'
 
     duplicate_df          = df[df['Task tags'].str.contains(tag_pattern, case=False, na=False)]
     duplicate_df          = duplicate_df[duplicate_df.duplicated(subset=['Task tags'], keep=False)]
