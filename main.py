@@ -223,6 +223,7 @@ if file is not None:
             accounting_file['Tax']                   = ''
 
             accounting_file = accounting_file[['Post?', 'Invoice/Bill Date', 'Due Date', 'Invoice / Bill Number', 'Transaction Type', 'Customer', 'Vendor', 'Currency Code', 'Product/Services', 'Description', 'Qty', 'Discount %', 'Unit Price', 'Category', 'Location', 'Class', 'Tax']]
+            accounting_file = accounting_file.sort_values(by='Vendor', ascending=True)
 
 
             l, m, r = st.columns(3)
@@ -232,3 +233,6 @@ if file is not None:
             r.metric(label='Amount', value='$' + str(round(df['Amount due'].sum(), 2)), help='Assumes **Rate paid** if present, **Total cost** otherwise.')
 
             st.download_button('Download Accounting File', data=accounting_file.to_csv(index=False).encode('utf-8'), file_name='Accounting_'+str(start_date)+'_'+str(end_date)+'.csv', type='primary', use_container_width=True)
+            
+            with open('cleaners.zip','rb') as invoice_file:
+                st.download_button('Download Cleaner Files', data=invoice_file, file_name='Cleaners_'+str(start_date)+'_'+str(end_date)+'.zip', type='primary', use_container_width=True, key='two')
