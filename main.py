@@ -179,6 +179,27 @@ if file is not None:
 
             accounting_df = pd.merge(df, escapia_df, how='left', left_on='Task tags', right_on='Reservation_Number')
 
+            accounting_file = pd.DataFrame()
+            accounting_file['Post?']                 = ''
+            accounting_file['Invoice/Bill Date']     = ''
+            accounting_file['Due Date']              = ''
+            accounting_file['Invoice / Bill Number'] = ''
+            accounting_file['Transaction Type']      = ''
+            accounting_file['Customer']              = ''
+            accounting_file['Vendor']                = accounting_df['Assignees']
+            accounting_file['Currency Code']         = ''
+            accounting_file['Product/Services']      = ''
+            accounting_file['Description']           = ''
+            accounting_file['Qty']                   = 1
+            accounting_file['Discount %']            = ''
+            accounting_file['Unit Price']            = accounting_df['Amount due'].astype(float)
+            accounting_file['Category']              = ''
+            accounting_file['Location']              = ''
+            accounting_file['Class']                 = accounting_df['Unit_Code']
+            accounting_file['Tax']                   = ''
+            accounting_file
+
+
             l, m, r = st.columns(3)
 
             l.metric(label='Cleans', value=len(df))
