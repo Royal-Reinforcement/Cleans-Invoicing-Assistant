@@ -72,7 +72,7 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
         'Task tags',
         ]]
     
-    df['Amount'] = df['Rate paid'].fillna(df['Total cost']).fillna(0.00)
+    df['Amount due'] = df['Rate paid'].fillna(df['Total cost']).fillna(0.00)
 
     l, r = st.columns(2)
 
@@ -213,6 +213,6 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
 
         l.metric(label='Cleans', value=len(df))
         m.metric(label='Cleaners', value=len(df['Assignees'].unique()))
-        r.metric(label='Amount', value='$' + str(round(df['Amount'].sum(), 2)), help='Assumes **Rate paid** if present, **Total cost** otherwise.')
+        r.metric(label='Amount', value='$' + str(round(df['Amount due'].sum(), 2)), help='Assumes **Rate paid** if present, **Total cost** otherwise.')
 
         st.download_button('Download Accounting File', data=df.to_csv(index=False).encode('utf-8'), file_name='Accounting_'+str(start_date)+'_'+str(end_date)+'.csv', type='primary', use_container_width=True)
