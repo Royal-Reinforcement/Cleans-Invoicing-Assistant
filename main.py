@@ -186,32 +186,42 @@ if file is not None:
                 
                 return f"{row['Reservation_Number']}, {row['Address']}"
 
-            accounting_df['Description'] = accounting_df.apply(build_description, axis=1)
+            def build_category(row):
+                if pd.isna(row['ReservationTypeDescription']):
+                    return 'NEED'
+                
+                if row['ReservationTypeDescription'] == 'Renter':
+                    return st.secrets['category']['guest']
+                elif row['ReservationTypeDescription'] == 'Owner' or row['ReservationTypeDescription'] == 'Guest of Owner':
+                    return st.secrets['category']['owner']
 
-            accounting_df
+            accounting_df['Description'] = accounting_df.apply(build_description, axis=1)
+            accounting_df['Category']    = accounting_df.apply(build_category, axis=1)
+
+            today  = datetime.datetime.today()
+            monday = today - datetime.timedelta(days=today.weekday())
+            friday = monday + datetime.timedelta(days=4)
 
             accounting_file = pd.DataFrame()
             accounting_file['Vendor']                = accounting_df['Assignees']
-            accounting_file['Unit Price']            = accounting_df['Amount due'].astype(float)
             accounting_file['Class']                 = accounting_df['Unit_Code']
             accounting_file['Description']           = accounting_df['Description']
+            accounting_file['Category']              = accounting_df['Category']
+            accounting_file['Unit Price']            = accounting_df['Amount due'].astype(float)
             accounting_file['Post?']                 = 'Yes'
             accounting_file['Transaction Type']      = 'Bill'
-            accounting_file['Qty']                   = 1
-            accounting_file['Invoice/Bill Date']     = '' 
-            accounting_file['Due Date']              = ''
-            accounting_file['Invoice / Bill Number'] = ''
+            accounting_file['Qty']                   = 1.00
+            accounting_file['Invoice/Bill Date']     = today.strftime('%-m/%-d/%y')
+            accounting_file['Due Date']              = friday.strftime('%-m/%-d/%y')
+            accounting_file['Invoice / Bill Number'] = monday.strftime('%-m.%-d.%y')
             accounting_file['Customer']              = ''
             accounting_file['Currency Code']         = ''
             accounting_file['Product/Services']      = ''
             accounting_file['Discount %']            = ''
-            accounting_file['Category']              = ''
             accounting_file['Location']              = ''
             accounting_file['Tax']                   = ''
 
             accounting_file = accounting_file[['Post?', 'Invoice/Bill Date', 'Due Date', 'Invoice / Bill Number', 'Transaction Type', 'Customer', 'Vendor', 'Currency Code', 'Product/Services', 'Description', 'Qty', 'Discount %', 'Unit Price', 'Category', 'Location', 'Class', 'Tax']]
-            
-            accounting_file
 
 
             l, m, r = st.columns(3)
