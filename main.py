@@ -162,10 +162,27 @@ if file is not None:
     
     with tab2:
 
-        l, m, r = st.columns(3)
+        current_year = datetime.datetime.now().year
+        prior_year   = current_year - 1
+        report_url   = f"{st.secrets['escapia_1']}{prior_year}{st.secrets['escapia_2']}{current_year}{st.secrets['escapia_3']}"
+        
+        st.link_button('Download the **Housekeeping Report** from **Escapia**', url=report_url, type='secondary', use_container_width=True, help='Housekeeping Arrival Departure Report - Excel 1 line')
 
-        l.metric(label='Cleans', value=len(df))
-        m.metric(label='Cleaners', value=len(df['Assignees'].unique()))
-        r.metric(label='Amount', value='$' + str(round(df['Amount due'].sum(), 2)), help='Assumes **Rate paid** if present, **Total cost** otherwise.')
+        escapia_file = st.file_uploader(label='Housekeeping Arrival Departure Report - Excel 1 line.csv', type='csv')
 
-        st.download_button('Download Accounting File', data=df.to_csv(index=False).encode('utf-8'), file_name='Accounting_'+str(start_date)+'_'+str(end_date)+'.csv', type='primary', use_container_width=True)
+        if escapia_file is not None:
+
+            escapia_df = pd.read_csv(escapia_file)
+            escapia_df = escapia_df[['Unit_Code', 'Reservation_Number', 'ReservationTypeDescription']]
+
+            df['Task tags'] = df['Task tags'].str.replace(' ','', regex=False)
+
+            accounting_df = pd.merge(df, escapia_df, how='left', left_on='Task tags', right_on='Reservation_Number')
+
+            l, m, r = st.columns(3)
+
+            l.metric(label='Cleans', value=len(df))
+            m.metric(label='Cleaners', value=len(df['Assignees'].unique()))
+            r.metric(label='Amount', value='$' + str(round(df['Amount due'].sum(), 2)), help='Assumes **Rate paid** if present, **Total cost** otherwise.')
+
+            st.download_button('Download Accounting File', data=accounting_df.to_csv(index=False).encode('utf-8'), file_name='Accounting_'+str(start_date)+'_'+str(end_date)+'.csv', type='primary', use_container_width=True)
