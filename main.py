@@ -143,53 +143,58 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
 
     st.divider()
 
+    
     st.header('Results')
 
-    l, m, r = st.columns(3)
+    tab1, tab2 = st.tabs(['🏘️ Housekeeping', '💵 Accounting'])
 
-    l.metric(label='Cleans', value=len(df))
-    m.metric(label='Cleaners', value=len(df['Assignees'].unique()))
-    r.metric(label='Cost', value='$' + str(round(df['Total cost'].sum(), 2)))
+    with tab1:
+
+        l, m, r = st.columns(3)
+
+        l.metric(label='Cleans', value=len(df))
+        m.metric(label='Cleaners', value=len(df['Assignees'].unique()))
+        r.metric(label='Cost', value='$' + str(round(df['Total cost'].sum(), 2)))
 
 
-    for cleaner in cleaners:
-        df_cleaner = df[df['Assignees'] == cleaner]
-        vendor_files.append(df_cleaner)
-        
-    with zipfile.ZipFile('cleaners.zip', 'w') as izip:
-        for vendor_file in vendor_files:
-            vdf = vendor_file.reset_index()
-            vdf = vdf.drop(columns=['index'])
-
-            if len(vdf) > 0:
-                file_name = vdf['Assignees'][0]
-                vdf.to_csv(f'{file_name}.csv', index=False)
-                izip.write(f'{file_name}.csv')
-                os.remove(f'{file_name}.csv')
-    
-    with open('cleaners.zip','rb') as invoice_file:
-        st.download_button('Download Cleaner Files', data=invoice_file, file_name='Cleaners_'+str(start_date)+'_'+str(end_date)+'.zip', type='primary', use_container_width=True)
-    
-    st.download_button('Download Accounting File', data=df.to_csv(index=False).encode('utf-8'), file_name='Accounting_'+str(start_date)+'_'+str(end_date)+'.csv', type='primary', use_container_width=True)
-
-    st.divider()
-
-    with st.expander('Cleaners'):
-        
         for cleaner in cleaners:
             df_cleaner = df[df['Assignees'] == cleaner]
+            vendor_files.append(df_cleaner)
+            
+        with zipfile.ZipFile('cleaners.zip', 'w') as izip:
+            for vendor_file in vendor_files:
+                vdf = vendor_file.reset_index()
+                vdf = vdf.drop(columns=['index'])
 
-            if len(df_cleaner) > 0:
-                st.subheader(cleaner)
+                if len(vdf) > 0:
+                    file_name = vdf['Assignees'][0]
+                    vdf.to_csv(f'{file_name}.csv', index=False)
+                    izip.write(f'{file_name}.csv')
+                    os.remove(f'{file_name}.csv')
+        
+        with open('cleaners.zip','rb') as invoice_file:
+            st.download_button('Download Cleaner Files', data=invoice_file, file_name='Cleaners_'+str(start_date)+'_'+str(end_date)+'.zip', type='primary', use_container_width=True)
+        
+        st.download_button('Download Accounting File', data=df.to_csv(index=False).encode('utf-8'), file_name='Accounting_'+str(start_date)+'_'+str(end_date)+'.csv', type='primary', use_container_width=True)
 
-                l, m, r = st.columns(3)
+        st.divider()
 
-                st.dataframe(df_cleaner, hide_index=True, use_container_width=True)
-                st.download_button(
-                    label='Download ' + cleaner + ' CSV',
-                    data=df_cleaner.to_csv(index=False).encode('utf-8'),
-                    file_name=(cleaner).strip() + '.csv',
-                    mime='text/csv',
-                    use_container_width=True,
-                    type='primary'
-                )
+        with st.expander('Cleaners'):
+            
+            for cleaner in cleaners:
+                df_cleaner = df[df['Assignees'] == cleaner]
+
+                if len(df_cleaner) > 0:
+                    st.subheader(cleaner)
+
+                    l, m, r = st.columns(3)
+
+                    st.dataframe(df_cleaner, hide_index=True, use_container_width=True)
+                    st.download_button(
+                        label='Download ' + cleaner + ' CSV',
+                        data=df_cleaner.to_csv(index=False).encode('utf-8'),
+                        file_name=(cleaner).strip() + '.csv',
+                        mime='text/csv',
+                        use_container_width=True,
+                        type='primary'
+                    )
