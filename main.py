@@ -6,6 +6,9 @@ import zipfile
 import os
 
 
+pd.options.mode.chained_assignment = None
+
+
 st.set_page_config(page_title='Cleans Invoicing Assistant', page_icon='🧍🏻', layout='centered', initial_sidebar_state='auto', menu_items=None)
 
 st.image(st.secrets['logo'], width=100)
@@ -107,30 +110,35 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
 
     st.header(f"Issues ({issues_df.shape[0]})")
 
-    if assignee_df.shape[0] != 0:
-        with st.expander(f"There are **{assignee_df.shape[0]}** tasks with **no assignee**."):
-            st.dataframe(assignee_df, hide_index=True, use_container_width=True)
-    
-    if cost_df.shape[0] != 0:
-        with st.expander(f"There are **{cost_df.shape[0]}** tasks that do not have a **Total cost** or **Rate paid**."):
-            st.dataframe(cost_df, hide_index=True, use_container_width=True)
-    
-    if tag_df.shape[0] != 0:
-        with st.expander(f"There are **{tag_df.shape[0]}** tasks which **tags** do not include **RES** or **HLD**."):
-            st.dataframe(tag_df, hide_index=True, use_container_width=True)
-    
-    if status_df.shape[0] != 0:
-        with st.expander(f"There are **{status_df.shape[0]}** tasks with a **status** that is not **Finished** or **Approved**."):
-            st.dataframe(status_df, hide_index=True, use_container_width=True)
+    if issues_df.shape[0] != 0:
 
-    st.download_button(
-        label='Download Issues File',
-        data=issues_df.to_csv(index=False).encode('utf-8'),
-        file_name='Issues_'+str(start_date)+'_'+str(end_date)+'.csv',
-        mime='text/csv',
-        use_container_width=True,
-        type='primary'
-    )
+        if assignee_df.shape[0] != 0:
+            with st.expander(f"There are **{assignee_df.shape[0]}** tasks with **no assignee**."):
+                st.dataframe(assignee_df, hide_index=True, use_container_width=True)
+        
+        if cost_df.shape[0] != 0:
+            with st.expander(f"There are **{cost_df.shape[0]}** tasks that do not have a **Total cost** or **Rate paid**."):
+                st.dataframe(cost_df, hide_index=True, use_container_width=True)
+        
+        if tag_df.shape[0] != 0:
+            with st.expander(f"There are **{tag_df.shape[0]}** tasks which **tags** do not include **RES** or **HLD**."):
+                st.dataframe(tag_df, hide_index=True, use_container_width=True)
+        
+        if status_df.shape[0] != 0:
+            with st.expander(f"There are **{status_df.shape[0]}** tasks with a **status** that is not **Finished** or **Approved**."):
+                st.dataframe(status_df, hide_index=True, use_container_width=True)
+
+        st.download_button(
+            label='Download Issues File',
+            data=issues_df.to_csv(index=False).encode('utf-8'),
+            file_name='Issues_'+str(start_date)+'_'+str(end_date)+'.csv',
+            mime='text/csv',
+            use_container_width=True,
+            type='primary'
+        )
+    
+    else:
+        st.success('There are no issues for this date range!')
 
 
     st.divider()
