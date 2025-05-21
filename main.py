@@ -177,22 +177,33 @@ if file is not None:
 
             df['Task tags'] = df['Task tags'].str.replace(' ','', regex=False)
 
-            accounting_df = pd.merge(df, escapia_df, how='left', left_on='Task tags', right_on='Reservation_Number')
+            accounting_df            = pd.merge(df, escapia_df, how='left', left_on='Task tags', right_on='Reservation_Number')
+            accounting_df['Address'] = accounting_df['Property'].str.split('-').str[1].str.strip()
+
+            def build_description(row):
+                if pd.isna(row['Reservation_Number']):
+                    return 'NEED'
+                
+                return f"{row['Reservation_Number']}, {row['Address']}"
+
+            accounting_df['Description'] = accounting_df.apply(build_description, axis=1)
+
+            accounting_df
 
             accounting_file = pd.DataFrame()
             accounting_file['Vendor']                = accounting_df['Assignees']
             accounting_file['Unit Price']            = accounting_df['Amount due'].astype(float)
             accounting_file['Class']                 = accounting_df['Unit_Code']
-            accounting_file['Post?']                 = 'No'
-            accounting_file['Invoice/Bill Date']     = ''
+            accounting_file['Description']           = accounting_df['Description']
+            accounting_file['Post?']                 = 'Yes'
+            accounting_file['Transaction Type']      = 'Bill'
+            accounting_file['Qty']                   = 1
+            accounting_file['Invoice/Bill Date']     = '' 
             accounting_file['Due Date']              = ''
             accounting_file['Invoice / Bill Number'] = ''
-            accounting_file['Transaction Type']      = 'Bill'
             accounting_file['Customer']              = ''
             accounting_file['Currency Code']         = ''
             accounting_file['Product/Services']      = ''
-            accounting_file['Description']           = ''
-            accounting_file['Qty']                   = 1
             accounting_file['Discount %']            = ''
             accounting_file['Category']              = ''
             accounting_file['Location']              = ''
