@@ -15,66 +15,20 @@ st.image(st.secrets['logo'], width=100)
 st.title('Cleans Invoicing Assistant')
 st.info('Use the Breezeway export file to faciliate vendor tasks and highlight any issues.')
 
-with st.expander('Uploaded Files'):
-    
-    file_descriptions = [
-        ['breezeway-task-custom-export.csv','Breezeway > Tasks > Cleans > Cleans (Invoicing) > {Select All} > Export to CSV'],
-    ]
+file = st.file_uploader(label='breezeway-task-custom-export.csv', type='csv')
 
-    files = {
-        'breezeway-task-custom-export.csv': None,
-    }
+if file is not None:
 
-    uploaded_files = st.file_uploader(
-        label='Files (' + str(len(files)) + ')',
-        accept_multiple_files=True
-    )
-
-    st.info('File names are **case sensitive** and **must be identical** to the file name below.')
-    st.dataframe(pd.DataFrame(file_descriptions, columns=['Required File','Source Location']), hide_index=True, use_container_width=True)
-
-
-if len(uploaded_files) > 0:
-    for index, file in enumerate(uploaded_files):
-        files[file.name] = index
-
-    hasAllRequiredFiles = True
-    missing = []
-
-    for file in files:
-        if files[file] == None:
-            hasAllRequiredFiles = False
-            missing.append(file)
-
-
-if len(uploaded_files) > 0 and not hasAllRequiredFiles:
-    for item in missing:
-        st.warning('**' + item + '** is missing and required.')
-
-
-elif len(uploaded_files) > 0 and hasAllRequiredFiles:
-
-    vendor_files   = []
-    df             = pd.read_csv(uploaded_files[files['breezeway-task-custom-export.csv']])
+    cleaner_files        = []
+    df                   = pd.read_csv(file)
     df['Completed date'] = pd.to_datetime(df['Completed date'])
+    df                   = df[['Assignees','Group','Completed date','Property','Task title','Total cost','Rate paid','Task ID','Status','Task tags']]
+    df['Amount due']     = df['Rate paid'].fillna(df['Total cost']).fillna(0.00)
+
     df.sort_values(by='Completed date', ascending=True, inplace=True)
-
-    df = df[[
-        'Assignees',
-        'Group',
-        'Completed date',
-        'Property',
-        'Task title',
-        'Total cost',
-        'Rate paid',
-        'Task ID',
-        'Status',
-        'Task tags',
-        ]]
     
-    df['Amount due'] = df['Rate paid'].fillna(df['Total cost']).fillna(0.00)
-
-    l, r = st.columns(2)
+    
+    l, r              = st.columns(2)
 
     today             = datetime.date.today()
     days_since_monday = today.weekday()
@@ -111,9 +65,8 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
     duplicate_df          = duplicate_df[duplicate_df.duplicated(subset=['Task tags'], keep=False)]
     duplicate_df['Issue'] = 'Duplicate_Reservation'
 
-
-    issues_df = pd.concat([assignee_df, tag_df, status_df, cost_df, duplicate_df], ignore_index=True)
-    issues_df = issues_df.sort_values(by='Task ID', ascending=True)
+    issues_df             = pd.concat([assignee_df, tag_df, status_df, cost_df, duplicate_df], ignore_index=True)
+    issues_df             = issues_df.sort_values(by='Task ID', ascending=True)
 
 
     st.header(f"Issues ({issues_df.shape[0]})", help='A 5-point inspection of each task to ensure: (1) there is an assignee, (2) the task is tagged with a reservation number, (3) the status is either Finished or Approved, (4) there is a cost, and (5) there are not duplicate reservation numbers. If any of these conditions are not met, the task will be flagged below for review.')
@@ -171,11 +124,11 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
 
         for cleaner in cleaners:
             df_cleaner = df[df['Assignees'] == cleaner]
-            vendor_files.append(df_cleaner)
+            cleaner_files.append(df_cleaner)
             
         with zipfile.ZipFile('cleaners.zip', 'w') as izip:
-            for vendor_file in vendor_files:
-                vdf = vendor_file.reset_index()
+            for cleaner_file in cleaner_files:
+                vdf = cleaner_file.reset_index()
                 vdf = vdf.drop(columns=['index'])
 
                 if len(vdf) > 0:
