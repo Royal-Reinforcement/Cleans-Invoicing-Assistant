@@ -93,22 +93,27 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
     tags                 = ['RES', 'HLD']
     tag_pattern          = '|'.join(tags)
     tag_df               = df[~df['Task tags'].str.contains(tag_pattern, case=False, na=False)]
-    tag_df['Issue']      = 'Tag'
+    tag_df['Issue']      = 'Missing_Reservation_Tag'
 
     statuses             = ['Finished', 'Approved']
     status_df            = df[~df['Status'].isin(statuses)]
-    status_df['Issue']   = 'Status'
+    status_df['Issue']   = 'Invalid_Status'
 
     assignee_df          = df[df['Assignees'].isna()]
-    assignee_df['Issue'] = 'Assignee'
+    assignee_df['Issue'] = 'Missing_Assignee'
 
     cost_df              = df[(df['Total cost'].isna() & df['Rate paid'].isna())]
-    cost_df['Issue']     = 'Cost'
+    cost_df['Issue']     = 'Missing_Cost'
 
-    issues_df = pd.concat([assignee_df, tag_df, status_df, cost_df], ignore_index=True)
+    duplicate_df          = df[df['Task tags'].str.contains(tag_pattern, case=False, na=False)]
+    duplicate_df          = duplicate_df[duplicate_df.duplicated(subset=['Task tags'], keep=False)]
+    duplicate_df['Issue'] = 'Duplicate_Reservation'
+    
+
+    issues_df = pd.concat([assignee_df, tag_df, status_df, cost_df, duplicate_df], ignore_index=True)
 
 
-    st.header(f"Issues ({issues_df.shape[0]})")
+    st.header(f"Issues ({issues_df.shape[0]})", help='A 5-point inspection of each task to ensure: (1) there is an assignee, (2) the task is tagged with a reservation number, (3) the status is either Finished or Approved, (4) there is a cost, and (5) there are not duplicate reservation numbers. If any of these conditions are not met, the task will be flagged below for review.')
 
     if issues_df.shape[0] != 0:
 
@@ -127,6 +132,10 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
         if status_df.shape[0] != 0:
             with st.expander(f"There are **{status_df.shape[0]}** tasks with a **status** that is not **Finished** or **Approved**."):
                 st.dataframe(status_df, hide_index=True, use_container_width=True)
+        
+        if duplicate_df.shape[0] != 0:
+            with st.expander(f"There are **{duplicate_df.shape[0]}** tasks with reused **reservation numbers**."):
+                st.dataframe(duplicate_df, hide_index=True, use_container_width=True)
 
         st.download_button(
             label='Download Issues File',
