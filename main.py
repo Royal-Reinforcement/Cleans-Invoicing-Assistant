@@ -6,7 +6,7 @@ import zipfile
 import os
 
 
-st.set_page_config(page_title='Cleans Invoicing Assistant', page_icon='🧍🏻', layout="centered", initial_sidebar_state="auto", menu_items=None)
+st.set_page_config(page_title='Cleans Invoicing Assistant', page_icon='🧍🏻', layout='centered', initial_sidebar_state='auto', menu_items=None)
 
 st.image(st.secrets['logo'], width=100)
 st.title('Cleans Invoicing Assistant')
@@ -86,22 +86,51 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
 
     st.divider()
 
-    st.header('Issues')
-    st.success('Coming soon!')
 
-    def grab_issues(row):
+    tags                 = ['RES', 'HLD']
+    tag_pattern          = '|'.join(tags)
+    tag_df               = df[~df['Task tags'].str.contains(tag_pattern, case=False, na=False)]
+    tag_df['Issue']      = 'Tag'
 
-        issue = ''
+    statuses             = ['Finished', 'Approved']
+    status_df            = df[~df['Status'].isin(statuses)]
+    status_df['Issue']   = 'Status'
 
-        # Does the task tag contain "RES" or "HLD"?
-        if 'RES' in row['Task tags'] or 'HLD' in row['Task tags']:
-            if issue == '': issue += 'TAG-ERROR'
-            else: issue += ', TAG-ERROR'
-        
-        # TODO
-        
+    assignee_df          = df[df['Assignees'].isna()]
+    assignee_df['Issue'] = 'Assignee'
 
+    cost_df              = df[(df['Total cost'].isna() & df['Rate paid'].isna())]
+    cost_df['Issue']     = 'Cost'
+
+    issues_df = pd.concat([assignee_df, tag_df, status_df, cost_df], ignore_index=True)
+
+
+    st.header(f"Issues ({issues_df.shape[0]})")
+
+    if assignee_df.shape[0] != 0:
+        with st.expander(f"There are **{assignee_df.shape[0]}** tasks with **no assignee**."):
+            st.dataframe(assignee_df, hide_index=True, use_container_width=True)
     
+    if cost_df.shape[0] != 0:
+        with st.expander(f"There are **{cost_df.shape[0]}** tasks that do not have a **Total cost** or **Rate paid**."):
+            st.dataframe(cost_df, hide_index=True, use_container_width=True)
+    
+    if tag_df.shape[0] != 0:
+        with st.expander(f"There are **{tag_df.shape[0]}** tasks which **tags** do not include **RES** or **HLD**."):
+            st.dataframe(tag_df, hide_index=True, use_container_width=True)
+    
+    if status_df.shape[0] != 0:
+        with st.expander(f"There are **{status_df.shape[0]}** tasks with a **status** that is not **Finished** or **Approved**."):
+            st.dataframe(status_df, hide_index=True, use_container_width=True)
+
+    st.download_button(
+        label='Download Issues File',
+        data=issues_df.to_csv(index=False).encode('utf-8'),
+        file_name='Issues_'+str(start_date)+'_'+str(end_date)+'.csv',
+        mime='text/csv',
+        use_container_width=True,
+        type='primary'
+    )
 
 
     st.divider()
