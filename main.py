@@ -153,8 +153,9 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
         l, m, r = st.columns(3)
 
         l.metric(label='Cleans', value=len(df))
-        m.metric(label='Cleaners', value=len(df['Assignees'].unique()))
-        r.metric(label='Cost', value='$' + str(round(df['Total cost'].sum(), 2)))
+        m.metric(label='Properties', value=len(df['Property'].unique()))
+        r.metric(label='Cleaners', value=len(df['Assignees'].unique()))
+        # r.metric(label='Cost', value='$' + str(round(df['Total cost'].sum(), 2)))
 
 
         for cleaner in cleaners:
@@ -174,10 +175,6 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
         
         with open('cleaners.zip','rb') as invoice_file:
             st.download_button('Download Cleaner Files', data=invoice_file, file_name='Cleaners_'+str(start_date)+'_'+str(end_date)+'.zip', type='primary', use_container_width=True)
-        
-        st.download_button('Download Accounting File', data=df.to_csv(index=False).encode('utf-8'), file_name='Accounting_'+str(start_date)+'_'+str(end_date)+'.csv', type='primary', use_container_width=True)
-
-        st.divider()
 
         with st.expander('Cleaners'):
             
@@ -198,3 +195,13 @@ elif len(uploaded_files) > 0 and hasAllRequiredFiles:
                         use_container_width=True,
                         type='primary'
                     )
+    
+    with tab2:
+
+        l, m, r = st.columns(3)
+
+        l.metric(label='Cleans', value=len(df))
+        m.metric(label='Cleaners', value=len(df['Assignees'].unique()))
+        r.metric(label='Cost', value='$' + str(round(df['Total cost'].sum(), 2)))
+
+        st.download_button('Download Accounting File', data=df.to_csv(index=False).encode('utf-8'), file_name='Accounting_'+str(start_date)+'_'+str(end_date)+'.csv', type='primary', use_container_width=True)
