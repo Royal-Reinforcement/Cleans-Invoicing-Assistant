@@ -2,8 +2,18 @@ import streamlit as st
 import pandas as pd
 import datetime
 
+import smartsheet
 import zipfile
 import os
+
+
+def smartsheet_to_dataframe(sheet_id):
+    smartsheet_client = smartsheet.Smartsheet(st.secrets['smartsheet']['access_token'])
+    sheet             = smartsheet_client.Sheets.get_sheet(sheet_id)
+    columns           = [col.title for col in sheet.columns]
+    rows              = []
+    for row in sheet.rows: rows.append([cell.value for cell in row.cells])
+    return pd.DataFrame(rows, columns=columns)
 
 
 pd.options.mode.chained_assignment = None
@@ -216,7 +226,6 @@ if file is not None:
             accounting_file['Description']           = accounting_df['Description']
             accounting_file['Category']              = accounting_df['Category']
             accounting_file['Unit Price']            = accounting_df['Amount due'].astype(float)
-            accounting_file['Post?']                 = 'Yes'
             accounting_file['Transaction Type']      = 'Bill'
             accounting_file['Qty']                   = 1.00
             accounting_file['Invoice/Bill Date']     = today.strftime('%-m/%-d/%y')
@@ -229,7 +238,14 @@ if file is not None:
             accounting_file['Location']              = ''
             accounting_file['Tax']                   = ''
 
-            accounting_file = accounting_file[['Post?', 'Invoice/Bill Date', 'Due Date', 'Invoice / Bill Number', 'Transaction Type', 'Customer', 'Vendor', 'Currency Code', 'Product/Services', 'Description', 'Qty', 'Discount %', 'Unit Price', 'Category', 'Location', 'Class', 'Tax']]
+            cleaner_map     = smartsheet_to_dataframe(st.secrets['smartsheet']['sheet'])
+            cleaner_map.loc[cleaner_map['Breezeway'] == st.secrets.cleaners.issue, 'Breezeway'] = st.secrets.cleaners.fix
+
+            accounting_file = pd.merge(accounting_file, cleaner_map, left_on='Vendor', right_on='Breezeway', how='left')
+            accounting_file = accounting_file.drop(['Vendor','Breezeway'], axis=1)
+            accounting_file.rename(columns={'Quickbooks': 'Vendor'}, inplace=True)
+
+            accounting_file = accounting_file[['Invoice/Bill Date', 'Due Date', 'Invoice / Bill Number', 'Transaction Type', 'Customer', 'Vendor', 'Currency Code', 'Product/Services', 'Description', 'Qty', 'Discount %', 'Unit Price', 'Category', 'Location', 'Class', 'Tax']]
             accounting_file = accounting_file.sort_values(by='Vendor', ascending=True)
 
 
