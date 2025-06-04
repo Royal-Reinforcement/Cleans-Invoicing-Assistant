@@ -207,9 +207,9 @@ if file is not None:
             escapia_df = pd.read_csv(escapia_file)
             escapia_df = escapia_df[['Unit_Code', 'Reservation_Number', 'ReservationTypeDescription']]
 
-            df['Task tags'] = df['Task tags'].str.replace(' ','', regex=False)
+            df['Reservation ID'] = df['Reservation ID'].str.replace(' ','', regex=False)
 
-            accounting_df            = pd.merge(df, escapia_df, how='left', left_on='Task tags', right_on='Reservation_Number')
+            accounting_df            = pd.merge(df, escapia_df, how='left', left_on='Reservation ID', right_on='Reservation_Number')
             accounting_df['Address'] = accounting_df['Property'].str.split('-').str[1].str.strip()
 
             def build_description(row):
