@@ -32,11 +32,23 @@ if file is not None:
     cleaner_files        = []
     df                   = pd.read_csv(file)
     df['Completed date'] = pd.to_datetime(df['Completed date'])
-    df                   = df[['Assignees','Group','Completed date','Property','Task title','Total cost','Rate paid','Task ID','Status','Task tags']]
+    df                   = df[['Assignees','Group','Completed date','Property','Task title','Total cost','Rate paid','Task ID','Status','Reservation ID','Task tags']]
     df['Amount due']     = df['Rate paid'].fillna(df['Total cost']).fillna(0.00)
 
     df.sort_values(by='Completed date', ascending=True, inplace=True)
+
+
+    def overwrite_reservation_ids(row):
+        keywords = ['RES', 'HLD']
+
+        if row['Task tags'] is not None:
+            if any(keyword in str(row['Task tags']).upper() for keyword in keywords):
+                return row['Task tags']
+        
+        return row['Reservation ID']
     
+    df['Reservation ID'] = df.apply(overwrite_reservation_ids, axis=1)
+
     
     l, r              = st.columns(2)
 
@@ -56,16 +68,13 @@ if file is not None:
 
     st.divider()
 
-
     assignee_df           = df[df['Assignees'].isna()]
     assignee_df['Issue']  = 'Missing_Assignee'
 
     assignees_df          = df[df['Assignees'].str.contains(';', na=False)]
     assignees_df['Issue'] = 'Multiple_Assignees'
 
-    tags                  = ['RES', 'HLD']
-    tag_pattern           = '|'.join(tags)
-    tag_df                = df[~df['Task tags'].str.contains(tag_pattern, case=False, na=False)]
+    tag_df                = df[pd.isna(df['Reservation ID'])]
     tag_df['Issue']       = 'Missing_Reservation_Tag'
 
     statuses              = ['Finished', 'Approved']
@@ -75,15 +84,15 @@ if file is not None:
     cost_df               = df[(df['Total cost'].isna() & df['Rate paid'].isna())]
     cost_df['Issue']      = 'Missing_Cost'
 
-    duplicate_df          = df[df['Task tags'].str.contains(tag_pattern, case=False, na=False)]
-    duplicate_df          = duplicate_df[duplicate_df.duplicated(subset=['Task tags'], keep=False)]
+    duplicate_df          = df[~pd.isna(df['Reservation ID'])]
+    duplicate_df          = duplicate_df[duplicate_df.duplicated(subset=['Reservation ID'], keep=False)]
     duplicate_df['Issue'] = 'Duplicate_Reservation'
 
     issues_df             = pd.concat([assignee_df, assignees_df, tag_df, status_df, cost_df, duplicate_df], ignore_index=True)
     issues_df             = issues_df.sort_values(by='Task ID', ascending=True)
 
 
-    st.header(f"Issues ({issues_df.shape[0]})", help='A 6-point inspection of each task to ensure: (1) there is an assignee, (2) there is only one assignee, (3) the task is tagged with a reservation number, (4) the status is either Finished or Approved, (5) there is a cost, and (6) there are not duplicate reservation numbers. If any of these conditions are not met, the task will be flagged below for review.')
+    st.header(f"Issues ({issues_df.shape[0]})", help='A 6-point inspection of each task to ensure: (1) there is an assignee, (2) there is only one assignee, (3) the task has a reservation number or is tagged with a reservation number, (4) the status is either Finished or Approved, (5) there is a cost, and (6) there are not duplicate reservation numbers. If any of these conditions are not met, the task will be flagged below for review.')
 
     if issues_df.shape[0] != 0:
 
@@ -100,7 +109,7 @@ if file is not None:
                 st.dataframe(cost_df, hide_index=True, use_container_width=True)
         
         if tag_df.shape[0] != 0:
-            with st.expander(f"There are **{tag_df.shape[0]}** tasks which **tags** do not include **RES** or **HLD**."):
+            with st.expander(f"There are **{tag_df.shape[0]}** tasks that do not have a **reservation number**."):
                 st.dataframe(tag_df, hide_index=True, use_container_width=True)
         
         if status_df.shape[0] != 0:
