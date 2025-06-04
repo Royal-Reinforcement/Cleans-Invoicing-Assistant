@@ -16,6 +16,16 @@ def smartsheet_to_dataframe(sheet_id):
     return pd.DataFrame(rows, columns=columns)
 
 
+def overwrite_reservation_ids(row):
+        keywords = ['RES', 'HLD']
+
+        if row['Task tags'] is not None:
+            if any(keyword in str(row['Task tags']).upper() for keyword in keywords):
+                return row['Task tags']
+        
+        return row['Reservation ID']
+
+
 pd.options.mode.chained_assignment = None
 
 
@@ -34,20 +44,15 @@ if file is not None:
     df['Completed date'] = pd.to_datetime(df['Completed date'])
     df                   = df[['Assignees','Group','Completed date','Property','Task title','Total cost','Rate paid','Task ID','Status','Reservation ID','Task tags']]
     df['Amount due']     = df['Rate paid'].fillna(df['Total cost']).fillna(0.00)
+    df['Reservation ID'] = df.apply(overwrite_reservation_ids, axis=1)
+
+    ignore_df            = smartsheet_to_dataframe(st.secrets['smartsheet']['sheet_id']['ignore'])
+    ignore_df            = ignore_df.dropna()
+    ignore_list          = ignore_df['Vendor'].to_list()
+
+    df                   = df[~df['Assignees'].isin(ignore_list)]
 
     df.sort_values(by='Completed date', ascending=True, inplace=True)
-
-
-    def overwrite_reservation_ids(row):
-        keywords = ['RES', 'HLD']
-
-        if row['Task tags'] is not None:
-            if any(keyword in str(row['Task tags']).upper() for keyword in keywords):
-                return row['Task tags']
-        
-        return row['Reservation ID']
-    
-    df['Reservation ID'] = df.apply(overwrite_reservation_ids, axis=1)
 
     
     l, r              = st.columns(2)
@@ -247,7 +252,7 @@ if file is not None:
             accounting_file['Location']              = ''
             accounting_file['Tax']                   = ''
 
-            cleaner_map     = smartsheet_to_dataframe(st.secrets['smartsheet']['sheet'])
+            cleaner_map     = smartsheet_to_dataframe(st.secrets['smartsheet']['sheet_id']['cleaners'])
             cleaner_map.loc[cleaner_map['Breezeway'] == st.secrets.cleaners.issue, 'Breezeway'] = st.secrets.cleaners.fix
 
             accounting_file = pd.merge(accounting_file, cleaner_map, left_on='Vendor', right_on='Breezeway', how='left')
