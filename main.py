@@ -113,7 +113,6 @@ if file is not None:
     pricing_df['Unit_Code'] = pricing_df['Property'].str.extract(r'\((.*?)\)')
     pricing_df['Clean']     = pricing_df['Task title'].str.replace(r'\s*-\s*\(.*?\)$', '', regex=True)
     pricing_df              = pd.merge(pricing_df, cleans, how='left', on=['Clean'])
-    pricing_df
 
     def get_official_amount(row):
 
