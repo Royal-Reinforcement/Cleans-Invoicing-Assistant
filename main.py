@@ -7,6 +7,7 @@ import zipfile
 import os
 
 
+@st.cache_data
 def smartsheet_to_dataframe(sheet_id):
     smartsheet_client = smartsheet.Smartsheet(st.secrets['smartsheet']['access_token'])
     sheet             = smartsheet_client.Sheets.get_sheet(sheet_id)
@@ -93,11 +94,60 @@ if file is not None:
     duplicate_df          = duplicate_df[duplicate_df.duplicated(subset=['Reservation ID'], keep=False)]
     duplicate_df['Issue'] = 'Duplicate_Reservation'
 
-    issues_df             = pd.concat([assignee_df, assignees_df, tag_df, status_df, cost_df, duplicate_df], ignore_index=True)
+    cleans                = smartsheet_to_dataframe(st.secrets['smartsheet']['sheet_id']['cleans'])
+    cleans_list           = cleans['Clean'].to_list()
+    cleans_df             = df.copy()
+    cleans_df['Clean']    = cleans_df['Task title'].str.replace(r'\s*-\s*\(.*?\)$', '', regex=True)
+    cleans_df             = cleans_df[~cleans_df['Clean'].isin(cleans_list)]
+    cleans_df             = cleans_df.drop(columns=['Clean'])
+    cleans_df['Issue']    = 'Invalid_Clean'
+
+    @st.dialog(title='Official Cleans List')
+    def show_cleans_list_dialog():
+        st.dataframe(cleans, hide_index=True, use_container_width=True)
+        with st.expander('Source'):
+            st.code('Smartsheet: Cleans \n Workspace: Cleans Invoicing Assistant')
+
+    pricing                 = smartsheet_to_dataframe(st.secrets['smartsheet']['sheet_id']['prices'])
+    pricing_df              = df.copy()
+    pricing_df['Unit_Code'] = pricing_df['Property'].str.extract(r'\((.*?)\)')
+    pricing_df['Clean']     = pricing_df['Task title'].str.replace(r'\s*-\s*\(.*?\)$', '', regex=True)
+    pricing_df              = pd.merge(pricing_df, cleans, how='left', on=['Clean'])
+    pricing_df
+
+    def get_official_amount(row):
+
+        if row['Rate'] not in pricing.columns:
+            return None
+
+        result = pricing.loc[pricing['Unit Code'] == row['Unit_Code'], row['Rate']]
+        if not result.empty:
+            return result.values[0]
+        else:
+            return None
+
+    pricing_df['Amount']       = pricing_df.apply(get_official_amount, axis=1)
+    pricing_df['isRightPrice'] = pricing_df['Amount due'] == pricing_df['Amount']
+
+    def get_pricing_issue(row):
+        if pd.isna(row['Amount']):
+            if row['Unit_Code'] not in pricing['Unit Code'].values:
+                return 'Price_For_Unit_Code_Not_Established'
+            if row['Rate'] not in pricing.columns:
+                return 'Invalid_Clean'
+            return 'Price_Not_Found'
+        return 'Price_Set_At_' + str(row['Amount'])
+    
+    pricing_df['Issue']        = pricing_df.apply(get_pricing_issue, axis=1)
+    pricing_df                 = pricing_df[pricing_df['isRightPrice'] == False]
+    pricing_df                 = pricing_df.drop(columns=['Unit_Code', 'Clean', 'Rate', 'Amount', 'isRightPrice'])
+
+    issues_df             = pd.concat([assignee_df, assignees_df, tag_df, status_df, cost_df, duplicate_df, cleans_df, pricing_df], ignore_index=True)
     issues_df             = issues_df.sort_values(by='Task ID', ascending=True)
+    
 
 
-    st.header(f"Issues ({issues_df.shape[0]})", help='A 6-point inspection of each task to ensure: (1) there is an assignee, (2) there is only one assignee, (3) the task has a reservation number or is tagged with a reservation number, (4) the status is either Finished or Approved, (5) there is a cost, and (6) there are not duplicate reservation numbers. If any of these conditions are not met, the task will be flagged below for review.')
+    st.header(f"Issues ({issues_df.shape[0]})", help='A 7-point inspection of each task to ensure: (1) there is an assignee, (2) there is only one assignee, (3) the task has a reservation number or is tagged with a reservation number, (4) the status is either Finished or Approved, (5) there is a cost, (6) there are not duplicate reservation numbers, and (7) the clean type is in the official cleans list. If any of these conditions are not met, the task will be flagged below for review.')
 
     if issues_df.shape[0] != 0:
 
@@ -124,6 +174,16 @@ if file is not None:
         if duplicate_df.shape[0] != 0:
             with st.expander(f"There are **{duplicate_df.shape[0]}** tasks with reused **reservation numbers**."):
                 st.dataframe(duplicate_df, hide_index=True, use_container_width=True)
+        
+        if cleans_df.shape[0] != 0:
+            with st.expander(f"There are **{cleans_df.shape[0]}** tasks that have titles not in the **official cleans list**."):
+                st.dataframe(cleans_df, hide_index=True, use_container_width=True)
+                if st.button('Official Cleans List', on_click=lambda: st.write(cleans_list), type='secondary', use_container_width=True):
+                    show_cleans_list_dialog()
+
+        if pricing_df.shape[0] != 0:
+            with st.expander(f"There are **{pricing_df.shape[0]}** tasks that have an **invalid price**."):
+                st.dataframe(pricing_df, hide_index=True, use_container_width=True)
 
         st.download_button(
             label='Download Issues File',
