@@ -147,7 +147,7 @@ if file is not None:
     
 
 
-    st.header(f"Issues ({issues_df.shape[0]})", help='A 7-point inspection of each task to ensure: (1) there is an assignee, (2) there is only one assignee, (3) the task has a reservation number or is tagged with a reservation number, (4) the status is either Finished or Approved, (5) there is a cost, (6) there are not duplicate reservation numbers, and (7) the clean type is in the official cleans list. If any of these conditions are not met, the task will be flagged below for review.')
+    st.header(f"Issues ({issues_df.shape[0]})", help='A 8-point inspection of each task to ensure: (1) there is an assignee, (2) there is only one assignee, (3) the task has a reservation number or is tagged with a reservation number, (4) the status is either Finished or Approved, (5) there is a cost, (6) there are not duplicate reservation numbers, (7) the clean type is in the official cleans list, and (8) pricing matches the established, property-specific rates. If any of these conditions are not met, the task will be flagged below for review.')
 
     if issues_df.shape[0] != 0:
 
