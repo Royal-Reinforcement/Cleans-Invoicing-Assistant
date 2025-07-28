@@ -81,7 +81,7 @@ if file is not None:
     assignees_df['Issue'] = 'Multiple_Assignees'
 
     tag_df                = df[pd.isna(df['Reservation ID'])]
-    tag_df['Issue']       = 'Missing_Reservation_Tag'
+    tag_df['Issue']       = 'Missing_Reservation_Number'
 
     statuses              = ['Finished', 'Approved']
     status_df             = df[~df['Status'].isin(statuses)]
